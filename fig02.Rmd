@@ -363,14 +363,11 @@ pB <- ggplot(df, aes(x, y)) + theme_gar +
                      breaks = nvec, labels = nvec.labs) +
   labs(x = "Sample size", y = "Power (true positive probability)")
 pB
-
-# save figure
-# ggsave(filename='./figures/figure3.pdf',width=8,height=5) #path=pathname
 ```
 
 
 ## combine panels into one figure
-```{r}
+```{r, eval=FALSE}
 cowplot::plot_grid(pA, pB,
   labels=c("A", "B"), 
   ncol = 1, 

@@ -23,12 +23,10 @@ https://doi.org/10.6084/m9.figshare.3427766.v1
 ```{r}
 library(ggplot2)
 library(cowplot)
-# library(tidyr)
 library(tibble)
-# library(forcats)
-# library(dplyr)
 source("./code/Rallfun-v40.txt")
 source("./code/theme_gar.txt")
+source("./code/xtrafun.R")
 ```
 
 # Make figure
@@ -47,6 +45,7 @@ df <- as_tibble(cbind(DT,Participants))
 df$Participants <- as.factor(df$Participants)
 df <- tidyr::gather(df, Positions, Thresholds, -Participants) # make long format
 df$Positions <- as.factor(df$Positions)
+df$Positions <- keeporder(df$Positions)
 dfA <- df
 ```
 
@@ -68,7 +67,7 @@ axis_title_size <- 16
 
 ## panel A: marginals
 ```{r}
-pA <- ggplot(dfA, aes(x=fct_inorder(Positions), y=Thresholds)) + theme_gar +
+pA <- ggplot(dfA, aes(x=Positions, y=Thresholds)) + theme_gar +
   geom_line(size = 0.5, aes(group = Participants, colour = Participants),
             alpha = .6) +
   geom_point(aes(fill = Participants), shape = 21, size = 3, 
@@ -111,6 +110,7 @@ colnames(xx) <- newnames
 df <- as_tibble(xx)
 df <- tidyr::gather(df, Contrasts, Differences) # make long format
 df$Contrasts <- as.factor(df$Contrasts)
+df$Contrasts <- keeporder(df$Contrasts)
 dfB <- df
 
 # parameters for plots
@@ -120,8 +120,8 @@ axis_title_size <- 16
 
 # panel B: differences
 ```{r}
-pB <- ggplot(dfB, aes(x=fct_inorder(Contrasts), y=Differences, 
-                      colour = fct_inorder(Contrasts), fill = fct_inorder(Contrasts))) +
+pB <- ggplot(dfB, aes(x=Contrasts, y=Differences, 
+                      colour = Contrasts, fill = Contrasts)) +
   theme_gar + 
   geom_point(shape = 21, size = 3, colour = "black") +
   geom_abline(intercept = 0, slope = 0, linetype = 2) +
@@ -138,9 +138,8 @@ pB <- ggplot(dfB, aes(x=fct_inorder(Contrasts), y=Differences,
 pB
 ```
 
-
 ## combine panels into one figure
-```{r}
+```{r, eval=FALSE}
 cowplot::plot_grid(pA, pB,
   labels=c("A", "B"), 
   ncol = 1, 
@@ -200,7 +199,7 @@ wmcppb(Man[,13:18], nboot=nboot, tr=tr) # 12 sig
 ```
 
 ### Sign test
-```{r, eval=false}
+```{r, eval=FALSE}
 signmcp(Man[,13:18], method='SD') 
 ```
 

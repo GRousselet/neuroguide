@@ -44,7 +44,6 @@ nboot <- 2000
 ```
 
 # panel A: KDE + SF of LATENCY data
-
 ```{r}
 # get latency data
 nonOri <- talebi[,1]          
@@ -90,6 +89,7 @@ kdeA <- ggplot(df, aes(Latency, Density, group=Group)) + theme_gar +
   ylab("Density")
 kdeA
 ```
+
 ## shift function 1: nonOri vs. expOri 
 
 ### Compute and base R plot
@@ -131,6 +131,7 @@ sf1A
 ```{r}
 sf2 <- qcomhd(nonOri,compOri,q=c(1:9)/10,nboot=nboot,plotit=TRUE)
 ```
+
 ### `ggplot2` version
 ```{r}
 # make data frame
@@ -160,7 +161,6 @@ sf2A
 ```
 
 # panel B: KDE + SF of DURATION data
-
 ```{r}
 # get latency data
 nonOri <- talebi[,4]          
@@ -283,7 +283,7 @@ sf2B
 ```
 
 # combine panels into one figure
-```{r}
+```{r, eval=FALSE}
 panelA <- cowplot::plot_grid(kdeA, sf1A, sf2A, 
                    labels=c("A", "", ""), 
                    ncol = 1, 
