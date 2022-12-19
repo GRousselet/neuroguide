@@ -1,0 +1,91 @@
+---
+title: 'A guide to robust statistical methods in neuroscience: outlier examples'
+author: "Rand R. Wilcox & Guillaume A. Rousselet"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    fig_caption: no
+    number_sections: no
+    toc: yes
+    toc_depth: 2
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+# Dependencies
+
+```{r message=FALSE}
+source("./code/Rallfun-v40.txt")
+```
+
+# Effect of outliers (section 2)
+
+## Sample without outliers
+```{r}
+mu <- 1 # hypothesis
+obs <- c(1, 1.5, 1.6, 1.8, 2, 2.2, 2.4, 2.7)
+tres <- t.test(obs, mu = mu)
+```
+
+sd = `r sd(obs)`;  
+*T* = `r tres$statistic`;  
+*p* = `r tres$p.value`;  
+CI = [`r tres$conf.int[1]`, `r tres$conf.int[2]`].    
+
+## Sample with one outlier
+```{r}
+mu <- 1 # hypothesis
+obs <- c(1, 1.5, 1.6, 1.8, 2, 2.2, 2.4, 2.7, 8)
+tres <- t.test(obs, mu = mu)
+```
+
+sd = `r sd(obs)`;  
+*T* = `r tres$statistic`;    
+*p* = `r tres$p.value`;    
+CI = [`r tres$conf.int[1]`, `r tres$conf.int[2]`].  
+
+# Effect of outliers (section 3)
+
+## Example 1
+
+### 2 SD rule
+```{r}
+a <- c(1, 2, 2, 3, 4, 6, 100, 100)
+((a - mean(a)) / sd(a)) > 2
+```
+
+### Boxplot rule
+```{r}
+out <- boxplot(a)
+out$out
+```
+
+### MAD-median rule
+```{r}
+((a - median(a)) / mad(a)) > 2.24 
+```
+
+
+## Example 2
+
+### 2 SD rule
+```{r}
+a <- c(1.85, 1.11, 1.11, 0.37, 0.37, 1.85, 71.53, 71.53)
+((a - mean(a)) / sd(a)) > 2
+```
+
+### Boxplot rule
+```{r}
+out <- boxplot(a)
+out$out
+```
+
+### MAD-median rule
+```{r}
+((a - median(a)) / mad(a)) > 2.24 
+```
+
+
+
+
+

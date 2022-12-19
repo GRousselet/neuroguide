@@ -1,0 +1,433 @@
+---
+title: 'A guide to robust statistical methods in neuroscience: Figure 9'
+author: "Rand R. Wilcox & Guillaume A. Rousselet"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    fig_caption: no
+    number_sections: no
+    toc: yes
+    toc_depth: 2
+---
+
+# Dependencies
+```{r}
+library(ggplot2)
+library(cowplot)
+library(tibble)
+library(akima)
+library(DetMCD)
+source("./code/Rallfun-v40.txt")
+source("./code/theme_gar.txt")
+```
+
+**Fractional Anisotropy and Reading Ability**
+
+The data were supplied by Suzanne Houston.
+
+The labels of the last six variables correspond to six tracts: Left Arcuate Fasciculus, Right Arcuate Fasciculus, Left Inferior Longitudinal Fasciculus, Right Inferior Longitudinal Fascisculus, Left Corticospinal, Right Corticospinal.  
+
+# Get data
+```{r}
+SH <- read.csv('./data/modeldata.csv',header=T,na.strings=999)
+age <- SH[,3] # age
+CST.L <- SH[,53] # CST.L = left corticospinal measures
+GORT.FL <- SH[,26] # GORT.FL = GORT fluency measure
+m <- elimna(cbind(age,CST.L,GORT.FL))
+age <- m[,1]
+CST.L <- m[,2]
+GORT.FL <- m[,3]
+
+# parameters for plots
+axis_size <- 14
+axis_title_size <- 16
+```
+
+# Panel A: CST / age
+
+## LOESS regression with confidence band
+```{r}
+xord <- order(age)
+age <- age[xord]
+CST.L <- CST.L[xord]
+GORT.FL <- GORT.FL[xord]
+
+out <- lplotCI(age, CST.L, xlab='age', ylab='CST.L', CIV = TRUE, pts = age, plotit = FALSE)
+out2 <- lplotCI(age, CST.L, xlab='age', ylab='CST.L', CIV = TRUE)
+```
+
+## `ggplot2` version
+```{r, warning=FALSE}
+# make data frames
+yhat <- out$Conf.Intervals[,2]
+df <- tibble(age, CST.L, yhat)
+x <- out2$Conf.Intervals[,1]
+y <- out2$Conf.Intervals[,2]
+lower <- out2$Conf.Intervals[,3]
+upper <- out2$Conf.Intervals[,4]
+dfhat <- tibble(x, y, lower, upper)
+
+# make ggplot version
+pA <- ggplot(dfhat, aes(x, y)) + theme_gar +
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey95") +
+  geom_line(aes(y = lower), colour = "grey70") +
+  geom_line(aes(y = upper), colour = "grey70") +
+  geom_line(data = df, aes(age, yhat), colour = "black", size = 1) +
+  geom_point(data = df, aes(age, CST.L), size = 2, alpha = 0.5) +
+  scale_y_continuous(breaks = seq(0.44,0.58,0.02),
+    limits = c(0.44, 0.58)) +
+  scale_x_continuous(breaks = seq(6,16,1),
+    limits = c(6, 16)) +
+  theme(axis.text = element_text(size = axis_size), 
+    axis.title = element_text(size = axis_title_size),
+    panel.grid.minor = element_blank()) +
+  xlab("Age") +
+  ylab("Left Corticospinal")
+pA
+```
+
+
+# Panel B: GORT / age 
+
+## LOESS regression with confidence band
+```{r}
+out <- lplotCI(age, GORT.FL, CIV = TRUE, pts = age, plotit = FALSE)
+out2 <- lplotCI(age, GORT.FL, xlab='age', ylab='GORT.FL', CIV = TRUE, plotit = TRUE)
+```
+
+## `ggplot2 version`
+```{r, warning=FALSE}
+# make data frame
+yhat <- out$Conf.Intervals[,2]
+df <- tibble(age, GORT.FL, yhat)
+x <- out2$Conf.Intervals[,1]
+y <- out2$Conf.Intervals[,2]
+lower <- out2$Conf.Intervals[,3]
+upper <- out2$Conf.Intervals[,4]
+dfhat <- tibble(x, y, lower, upper)
+
+# make ggplot version
+pB <- ggplot(dfhat, aes(x, y)) + theme_gar +
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey95") +
+  geom_line(aes(y = lower), colour = "grey70") +
+  geom_line(aes(y = upper), colour = "grey70") +
+  geom_line(data = df, aes(age, yhat), colour = "black", size = 1) +
+  geom_point(data = df, aes(age, GORT.FL), size = 2, alpha = 0.5) +
+  scale_y_continuous(breaks = seq(0,140,20),
+    limits = c(0, 150)) +
+  scale_x_continuous(breaks = seq(6,16,1),
+    limits = c(6, 16)) +
+  theme(axis.text = element_text(size = axis_size), 
+    axis.title = element_text(size = axis_title_size),
+    panel.grid.minor = element_blank()) +
+  xlab("Age") +
+  ylab("Fluency")
+pB
+```
+
+# Panel C: GORT / CST 
+
+## LOESS regression with confidence band
+```{r}
+xord <- order(CST.L)
+CST.L <- CST.L[xord]
+GORT.FL <- GORT.FL[xord]
+
+out <- lplotCI(CST.L, GORT.FL, CIV = TRUE, pts = CST.L, plotit = FALSE)
+out2 <- lplotCI(CST.L, GORT.FL, xlab='CST.L', ylab='GORT.FL', CIV = TRUE, plotit = TRUE)
+```
+
+## `ggplot2 version`
+```{r, warning=FALSE}
+# make data frame
+yhat <- out$Conf.Intervals[,2]
+df <- tibble(CST.L, GORT.FL, yhat)
+x <- out2$Conf.Intervals[,1]
+y <- out2$Conf.Intervals[,2]
+lower <- out2$Conf.Intervals[,3]
+upper <- out2$Conf.Intervals[,4]
+dfhat <- tibble(x, y, lower, upper)
+
+# make ggplot version
+pC <- ggplot(dfhat, aes(x, y)) + theme_gar +
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey95") +
+  geom_line(aes(y = lower), colour = "grey70") +
+  geom_line(aes(y = upper), colour = "grey70") +
+  geom_line(data = df, aes(CST.L, yhat), colour = "black", size = 1) +
+  geom_point(data = df, aes(CST.L, GORT.FL), size = 2, alpha = 0.5) +
+  scale_y_continuous(breaks = seq(0,140,20),
+    limits = c(0, 140)) +
+  scale_x_continuous(breaks = seq(0.44,0.58,0.02),
+    limits = c(0.44, 0.58)) +
+  theme(axis.text = element_text(size = axis_size), 
+    axis.title = element_text(size = axis_title_size),
+    panel.grid.minor = element_blank()) +
+  xlab("Left Corticospinal") +
+  ylab("Fluency")
+pC
+```
+
+# Panel D: CST / GORT
+
+## LOESS regression with confidence band
+```{r}
+xord <- order(GORT.FL)
+CST.L <- CST.L[xord]
+GORT.FL <- GORT.FL[xord]
+
+out <- lplotCI(GORT.FL, CST.L, CIV = TRUE, pts = GORT.FL, plotit = FALSE)
+out2 <- lplotCI(GORT.FL, CST.L, xlab='GORT.FL', ylab='CST.L', CIV = TRUE, plotit = TRUE)
+# outxout <- lplotCI(GORT.FL, CST.L, xout = TRUE, xlab='GORT.FL', ylab='CST.L', CIV = TRUE, plotit = TRUE)
+```
+
+## `ggplot2 version`
+```{r, warning=FALSE}
+# make data frames
+yhat <- out$Conf.Intervals[,2]
+df <- tibble(GORT.FL, CST.L, yhat) # individual points
+x <- out2$Conf.Intervals[,1]
+y <- out2$Conf.Intervals[,2]
+lower <- out2$Conf.Intervals[,3]
+upper <- out2$Conf.Intervals[,4]
+dfhat <- tibble(x, y, lower, upper) # fit
+# x <- outxout$Conf.Intervals[,1]
+# y <- outxout$Conf.Intervals[,2]
+# dfhatxout <- tibble(x, y) # fit without IV outliers
+
+# make ggplot version
+pD <- ggplot(dfhat, aes(x, y)) + theme_gar +
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey95") + # confidence band
+  geom_line(aes(y = lower), colour = "grey70") + 
+  geom_line(aes(y = upper), colour = "grey70") +
+  geom_line(data = df, aes(GORT.FL, yhat), colour = "black", size = 1) + # fit
+  geom_point(data = df, aes(GORT.FL, CST.L), size = 2, alpha = 0.5) + # individual points
+  # geom_line(data = dfhatxout, aes(x, y),
+  #           colour = "black", size = 0.5) + # fit without IV outliers
+  scale_x_continuous(breaks = seq(0,140,20),
+    limits = c(0, 140)) +
+  scale_y_continuous(breaks = seq(0.44,0.58,0.02),
+    limits = c(0.44, 0.58)) +
+  theme(axis.text = element_text(size = axis_size), 
+    axis.title = element_text(size = axis_title_size),
+    panel.grid.minor = element_blank()) +
+  xlab("Fluency") +
+  ylab("Left Corticospinal")
+pD
+```
+
+# Combine panels into one figure
+```{r, eval=FALSE, warning=FALSE}
+cowplot::plot_grid(pA, pB, pC, pD,
+  labels=c("A", "B", "C", "D"), 
+  ncol = 2, 
+  nrow = 2,
+  rel_widths = c(1, 1, 1, 1), 
+  label_size = 20, 
+  hjust = -0.5, 
+  scale=.95,
+  align = "h")
+
+# save figure
+ggsave(filename='./figures/figure9.pdf',width=10,height=10)
+```
+
+# Analyses presented in the text
+
+First, look at the importance of age versus CST.L (Left Corticospinal) when predicting
+GORT.FL (The GORT Fluency reading score). Step 1: does the smoother
+suggest that the regression surface is approximately a plane?
+
+```{r message=FALSE}
+lplot(SH[,c(3,53)],SH[,26],xlab='Age',ylab='CST.L',zlab='GORT.FL',xout=T) 
+```
+Note: `xout=T` means that leverage points are removed.
+
+Compare importance of age versus CST.L when predicting GORT.FL:
+
+First compare Pearson correlations.
+
+```{r}
+TWOpov(SH[,c(3,53)],SH[,26]) 
+```
+
+So this suggests that age is more important.
+Now consider what happens when both IVs are used in the model.
+
+```{r}
+#regIVcom(SH[,c(3,53)],SH[,26],xout=T)
+regIVcom(cbind(SH$age,SH$CST_L_Mean),SH$GORT_FL_R)
+```
+
+So again, based on the Theil--Sen estimator, the results suggest that age is more important. But in
+addition, the association between CST.L and GORT.FL is now much weaker
+compared to the situation where CST.L is ignored.
+Using instead least squares regression gives a similar result:
+
+```{r}
+#regIVcom(SH[,c(3,53)],SH[,26],xout=T)
+regIVcom(cbind(SH$age,SH$CST_L_Mean),SH$GORT_FL_R,regfun=ols)
+```
+
+Next, compare importance of age versus GORT.RA.R (raw rate) when predicting WJ.AT.R
+(raw word attack scores). First establish evidence for an association for each IV taken
+separately. 
+
+```{r}
+olshc4(SH[,c(3)],SH[,40],xout=T)
+olshc4(SH[,c(22)],SH[,40],xout=T)
+```
+
+Next, perform a partial check on the assumption that the regression surface is a plane via the
+plot returned by the R function lplot.
+
+```{r}
+lplot(SH[,c(3,22)],SH[,40],xlab='Age',ylab='GORT.RA.R',zlab='WJ.AT.R')
+```
+
+As an additional check, compare estimates of WJ.AT.R based on smooth versus
+a the usual linear regression line. If the usual linear model is reasonably accurate,
+a plot of the predicted values based on each method should be centered around a line with
+slope 1 and intercept zero.
+
+```{r}
+# pmodchk(SH[,c(3,22)],SH[,40],op=0) # DV=WORD ATTACK
+reg.vs.rplot(SH[,c(3,22)],SH[,40]) # DV=WORD ATTACK
+```
+
+Now consider whether age (col. 3) is more important.
+
+```{r}
+regIVcom(SH[,c(3,22)],SH[,40],xout=T) # Theil--Sen, DV=WORD ATTACK
+```
+```{r}
+regIVcom(SH[,c(3,22)],SH[,40],xout=T,regfun=ols) # Least Sq.
+```
+
+In contrast, when the independent variables are are
+considered separately, rather than including both in the 
+model, and if  Pearson's correlations are compared, fail to reject:
+
+```{r}
+TWOpovPV(SH[,c(3,22)],SH[,40]) 
+```
+
+As another example, take age and CST.L as the independent variables
+and WJ.WA.R  (Woodcock word attack score) as the dependent variable.
+
+```{r}
+olshc4(SH[,53],SH[,26],xout=T)
+olshc4(SH[,3],SH[,26],xout=T)
+regIVcom(SH[,c(3,53)],SH[,26],xout=T)  # Theil--Sen
+regIVcom(SH[,c(3,53)],SH[,26],xout=T,regfun=ols)  # Least squares
+```
+
+It is noted that the regression line for predicting CST.L with
+GORT.FL appears to be reasonably straight based on the running
+interval smoother:
+
+```{r}
+rplot(SH[,53],SH[,26],ylab='GORT.FL',xlab='CST.L',xout=T)
+```
+
+Moreover, using both independent variables, the usual linear model appears to
+provide a reasonable approximation of the regression surface based
+on nonparametric estimator LOESS, which is applied by the 
+R function lplot (leverage points removed).
+
+But in general, do not assume that the usual linear model
+is satisfactory or that curvature can be addressed simply by adding
+a quadratic term.  Here is an example where raw GORT fluency 
+(GORT.L) scores are used to predict Left Corticospinal measures (CST.L).
+Now assuming a straight regression line seems dubious at best:
+
+```{r}
+rplot(SH[,c(26)],SH[,53],xlab='GORT.FL',ylab='CST.L')
+```
+
+Is it possible to straighten the regression line by replacing X with 
+$X^a$ for some $a$?  Half slope ratio is negative, which
+indicates that the answer is no:
+
+```{r}
+hratio(SH[,26],SH[,53])
+```
+
+Now, suppose we split the data where CST.FL is less than or equal to 70. 
+We can compare the slope when CST.FL is less than or equal to 70
+to the slope when CST.FL is greater than 70: 
+
+```{r}
+flag=SH[,c(26)]<=70
+reg2ci(SH[flag,c(26)],SH[flag,53],SH[!flag,c(26)],SH[!flag,53],plotit=F)
+```
+
+So there is evidence that the nature of the association changes at or near
+CST.FL close to 70. In particular, it is possible that there is a 
+positive association  to about CST.FL=70, and then the
+strength of the association weakens considerably. 
+The corresponding Pearson correlations are 0.48 and $-0.26$ and 
+differ significantly at the 0.05 level; based on a robust (Winsorized)
+correlation, the p-value = 0.007. 
+
+However, the apparent curvature might be due in part to outliers
+among the independent variable. Here is a plot of the regression line
+when they are removed. 
+
+```{r}
+rplot(SH[,c(26)],SH[,53],xlab='GORT.FL',ylab='CST.L',xout=T)
+```
+
+So again there is evidence of curvature with the bend now near GORT.FL=80.
+
+But when these two variables are interchanged, now the regression
+line appears to be reasonably straight as previously noted.
+One possible explanation is that there are regression outliers 
+(outliers among the dependent variable), when predicting GORT.FL with 
+CST.L:
+
+```{r}
+reglev(SH[,53],SH[,26],plotit=F)
+```
+
+It is noted that if instead lplotCI is used, and outliers are
+retained, there appears to be curvature
+for the higher GORT.FL values:
+
+```{r}
+lplotCI(SH[,c(26)],SH[,53],xlab='GORT.FL',ylab='CST.L',xout=F)
+```
+
+Here is the result when outliers among the independent variable are removed.
+
+```{r}
+lplotCI(SH[,c(26)],SH[,53],xlab='GORT.FL',ylab='CST.L',xout=T)
+```
+
+This provides another illustration of why it can be important to 
+always check on the impact of removing outliers.
+
+Compare the correlation between Age and WJ.WA.R (word attack) versus GORT.FL.R.
+
+```{r}
+TWOpov(SH[,c(3,26)],SH[,40])
+```
+
+Now compare these two IVs when both are included in the model.
+
+```{r}
+regIVcom(SH[,c(3,26)],SH[,40])
+```
+
+Using least squares, switching from a homoscedastic method to a
+heteroscedastic method might make a substantial difference:
+Here is an example dealing with age and GORT standardized rate score.
+
+```{r}
+ols(SH[,c(3)],SH[,23]) # Use a hom. method
+olshc4(SH[,c(3)],SH[,23]) # Use a het. method
+```
+
+Here, the p-value drops when using a heteroscedastic method, but the
+reverse can happen because the homoscedastic method uses an 
+incorrect estimate of the standard error when there is homoscedasticity.
+

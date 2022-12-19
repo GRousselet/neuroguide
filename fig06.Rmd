@@ -1,0 +1,206 @@
+---
+title: 'A guide to robust statistical methods in neuroscience: Figure 6'
+author: "Rand R. Wilcox & Guillaume A. Rousselet"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    fig_caption: no
+    number_sections: no
+    toc: yes
+    toc_depth: 2
+---
+
+Mancini et al. (2014) report results aimed at providing a
+whole-body mapping of spatial acuity for pain. Here, we provide additional results
+based on the data from their second experiment. The sample size is $n=10$.  Briefly, spatial acuity was assessed by measuring 2-point discrimination (2PD) thresholds for both pain and touch in 11 body territories.
+
+The data can also be downloaded here:
+
+Mancini, Flavia (2016): ANA_mancini14_data.zip. figshare.
+https://doi.org/10.6084/m9.figshare.3427766.v1
+
+# Dependencies
+```{r}
+library(ggplot2)
+library(cowplot)
+# library(tidyr)
+library(tibble)
+# library(forcats)
+# library(dplyr)
+source("./code/Rallfun-v40.txt")
+source("./code/theme_gar.txt")
+```
+
+# Make figure
+
+## get data
+```{r}
+Man = read.table(file='./data/Man_try.tex',skip=1,header=T)
+```
+
+## make data frame 1: marginal distributions -------------------------------------
+```{r}
+DT <- Man[,13:18] # discrimination thresholds
+colnames(DT) <- c('FH', 'S', 'FA', 'H', 'B', 'T')
+Participants <- seq(1,nrow(DT))
+df <- as_tibble(cbind(DT,Participants))
+df$Participants <- as.factor(df$Participants)
+df <- tidyr::gather(df, Positions, Thresholds, -Participants) # make long format
+df$Positions <- as.factor(df$Positions)
+dfA <- df
+```
+
+## data frame of medians
+
+Summarise each column using the Harrell-Davis estimate of the 50th quantile.
+
+```{r}
+tmp <- as_tibble(DT)
+df.hd <- enframe(apply(tmp, 2, hd), name="Positions", value="Thresholds")
+df.hd$Positions <- as.factor(df.hd$Positions)
+```
+
+## parameters for plots
+```{r}
+axis_size <- 14
+axis_title_size <- 16
+```
+
+## panel A: marginals
+```{r}
+pA <- ggplot(dfA, aes(x=fct_inorder(Positions), y=Thresholds)) + theme_gar +
+  geom_line(size = 0.5, aes(group = Participants, colour = Participants),
+            alpha = .6) +
+  geom_point(aes(fill = Participants), shape = 21, size = 3, 
+             colour = "black", alpha = .6) +
+  theme(axis.text = element_text(size = axis_size),
+        axis.title = element_text(size = axis_title_size),
+        legend.position = "none") +
+  scale_y_continuous(limits = c(0,3.5), breaks = seq(0,3.5,0.5)) +
+  xlab("Positions") +
+  # superimpose medians
+  geom_line(data = df.hd, aes(group = 1), linewidth = 1) +
+  geom_point(data = df.hd, aes(group = 1), size = 3)
+pA
+```
+
+## make data frame 2: difference distributions -----------------------------------
+```{r}
+# compute all pairwise differences
+J <- ncol(DT)
+n <- nrow(DT)
+Jm <- J-1
+d <- (J^2-J)/2
+con <- matrix(0,J,d)
+newnames <- vector(mode = "character", length = d)
+cnames <- c('FH', 'S', 'FA', 'H', 'B', 'T')
+id<-0
+for (j in 1:Jm){
+  jp <- j+1
+  for (k in jp:J){
+    id<-id+1
+    con[j,id] <- 1
+    con[k,id] <- 0-1
+    newnames[id] <- paste(cnames[j],'-',cnames[k], sep = "")
+  }
+}
+xx <- matl(DT)%*%con
+
+# make data frame
+colnames(xx) <- newnames
+df <- as_tibble(xx)
+df <- tidyr::gather(df, Contrasts, Differences) # make long format
+df$Contrasts <- as.factor(df$Contrasts)
+dfB <- df
+
+# parameters for plots
+axis_title_size <- 16
+```
+
+
+# panel B: differences
+```{r}
+pB <- ggplot(dfB, aes(x=fct_inorder(Contrasts), y=Differences, 
+                      colour = fct_inorder(Contrasts), fill = fct_inorder(Contrasts))) +
+  theme_gar + 
+  geom_point(shape = 21, size = 3, colour = "black") +
+  geom_abline(intercept = 0, slope = 0, linetype = 2) +
+  theme(axis.text.y = element_text(size = 14),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+        axis.title = element_text(size = axis_title_size),
+        legend.position = "none") +
+  xlab("Contrasts") +
+  stat_summary(fun = hd, fun.min = hd, fun.max = hd,
+               geom = "crossbar", 
+               width = 0.5, 
+               colour = "black", 
+               size = 0.3) # add median
+pB
+```
+
+
+## combine panels into one figure
+```{r}
+cowplot::plot_grid(pA, pB,
+  labels=c("A", "B"), 
+  ncol = 1, 
+  nrow = 2,
+  rel_widths = c(1, 1), 
+  label_size = 20, 
+  hjust = -0.5, 
+  scale=.95,
+  align = "h")
+
+# save figure
+ggsave(filename='./figures/figure6.pdf',width=10,height=10) 
+```
+
+# Results reported in the text
+
+## Comparing foot and thigh pain measures
+
+### T-test
+```{r}
+t.test(Man$FootP-Man$thighP)
+```
+
+### Method using 20% trimmed means
+```{r}
+set.seed(666)
+nboot <- 2000 # number of bootstrap samples
+tr=0.2 # amount of trimming
+trimpb(Man$FootP-Man$thighP, nboot=nboot, tr=tr)
+```
+
+### Method using medians
+```{r}
+set.seed(666)
+dmedpb(Man$FootP,Man$thighP,nboot=nboot)
+```
+
+## All pairwise comparisons
+
+All pairwise comparisons, based on touch, were performed for the following body parts: forehead, shoulder,  forearm, palm, dorsum, back and  thigh. The probability of one or more Type I errors was controlled using an improvement on the Bonferroni method derived by Hochberg (1988).
+
+### Means
+```{r}
+wmcp(Man[,13:18],tr=0)  # 10 sig
+```
+
+### Medians
+```{r}
+set.seed(666)
+dmedpb(Man[,13:18], nboot=nboot) # 10 sig
+```
+
+### Trimmed means
+```{r}
+set.seed(666)
+wmcppb(Man[,13:18], nboot=nboot, tr=tr) # 12 sig
+```
+
+### Sign test
+```{r, eval=false}
+signmcp(Man[,13:18], method='SD') 
+```
+

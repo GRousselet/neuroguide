@@ -1,0 +1,331 @@
+---
+title: 'A guide to robust statistical methods in neuroscience: Figure 8'
+author: "Rand R. Wilcox & Guillaume A. Rousselet"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    fig_caption: no
+    number_sections: no
+    toc: yes
+    toc_depth: 2
+---
+
+**Development of Anxiety-Like Behaviors after Mild Traumatic Brain Injury**  
+Almeida-Suhett et al. (2014)
+
+The experimental groups  (5-6 week old male, Sprague--Dawley rats) received a mild controlled cortical impact (CCI). The outcome measure was stereologically estimated total number of GAD-67-positive cells in the basolateral amygdala (BLA). There are three independent groups: sham-treated controls that received a craniotomy, but no CCI injury, measures taken 1 day after CCI, and measures taken 7 days later.
+
+# Dependencies
+```{r}
+library(ggplot2)
+library(tibble)
+library(tidyr)
+source("./code/Rallfun-v40.txt")
+source("./code/theme_gar.txt")
+```
+
+# Load data
+```{r}
+# First six columns deal with neurons, final six with GAD-67
+prager=read.table('./data/Prager_Behvior_data.tex',skip=1,header=T)
+```
+
+# base R ipsi boxplots
+```{r}
+boxplot(prager[,c(7,9,11)])
+```
+
+# base R contra boxplots
+```{r}
+boxplot(prager[,c(8,10,12)])
+```
+# Make `ggplot2 figure`
+
+## Load data and reformat
+```{r, warning=FALSE}
+# ipsi <- prager[,c(7,9,11)]
+# contra <- prager[,c(8,10,12)]
+df <- as_tibble(prager[,7:12])
+df <- gather(df, group, BLA, na.rm=TRUE)
+df <- separate(df, group, c("location", "condition"), sep = "\\.")
+df$BLA <- as.numeric(df$BLA)
+df$location <- as.factor(df$location)
+df$condition <- factor(df$condition, levels = c("S", "1", "7"))
+```
+
+## Create figure
+```{r}
+ggplot(df, aes(condition, BLA)) + theme_gar + 
+  geom_jitter(colour = "grey", width = 0.05) + 
+  geom_boxplot(outlier.colour = "grey70", outlier.shape = 16,
+               outlier.size = 3, outlier.alpha = 0, size = 0.25, alpha = 0) +
+  stat_summary(fun = "mean",  geom = "point", size = 1.5) +
+  theme(axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 16),
+        axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18),
+        plot.title = element_text(size = 20),
+        legend.position="none") +
+  scale_x_discrete(breaks = c("S", "1", "7"),
+                   labels = c("Sham", "Day 1", "Day 7")) +
+  labs(x = "Conditions",
+       y = "number of GAD-67-positive cells\nin the basolateral amygdala") +
+  scale_y_continuous(limits = c(2500, 8000), breaks = seq(3000, 8000, 1000)) +
+  facet_grid(. ~ location, 
+             labeller = labeller(group = c(Ipsi = "Ipsilateral", 
+                                           Contra = "Contralateral"))) +
+  theme(strip.text.x = element_text(size = 20, colour = "white"),
+        strip.background = element_rect(colour="darkgrey", fill="darkgrey"))
+
+# save figure
+ggsave(filename='./figures/figure8.pdf',width=6,height=6) 
+```
+
+# Comparisons: ipsilateral conditions
+
+## Standard t-test
+
+### Day 7 vs control (sham)
+```{r}
+t.test(prager[,7],prager[,9],var.equal =T)  
+```
+### Day 1 vs control (sham)
+```{r}
+t.test(prager[,7],prager[,11],var.equal =T) 
+```
+
+So by Bonferroni, fail to reject  sham vs. Day 1. 
+But reject sham vs Day 7. Note, however, that for Day 1, the 
+improvement on the Bonferroni method derived by Hochberg (1988) rejects.
+
+```{r}
+p.adjust(c(0.0375, 0.0001406), method = "hochberg")
+```
+
+Now repeat this using a 20\% trimmed mean using a non-bootstrap
+method followed by a bootstrap method, then compare medians,
+then Cliff's improvement of WMW, next compare medians
+using the Harrell--Davis estimator, followed by the symmetry test, and 
+finally use the median of D=X-Y.
+
+Again focus on Ipsi and day 1 vs. sham. 
+
+## Ipsi: Sham vs. Day 1
+
+### Non-bootstrap 20% trimmed mean
+```{r}
+yuen(prager[,7],prager[,11])  
+```
+
+### 20% trimmed mean + bootstrap
+```{r}
+set.seed(44)
+nboot <- 2000
+trimpb2(prager[,7],prager[,11], nboot=nboot)  
+```
+
+In this situation, with relatively small  sample sizes, the expectation is that trimpb2 (bootstrap method) is better than yuen. As illustrated here, the choice between these two methods can make a practical difference. 
+
+### medians + bootstrap
+```{r}
+set.seed(44)
+medpb2(prager[,7],prager[,11], nboot=nboot)  
+```
+
+### Improved Wilcoxon-Mann-Whitney
+```{r}
+cidv2(prager[,7],prager[,11]) 
+```
+
+### Harrell-Davis estimator + bootstrap
+```{r}
+set.seed(44)
+pb2genMC(prager[,7],prager[,11],est=hd, nboot=nboot)
+```
+
+### Symmetry test based on D=X-Y
+```{r}
+set.seed(44)
+cbmhd(prager[,7],prager[,11], nboot=nboot) 
+```
+
+If the two distributions are identical, the distribution of $D=X-Y$ 
+should be symmetric about zero, so the sum of the lower and upper
+quartiles should be zero. The symmetry test performed by `cbmhd` indicates that this is not the
+case. Even the lower quartile is estimated to be greater than zero.
+
+### Median of the typical difference between randomly sampled observations from each group
+That is,focus on D=X-Y rather than the median of X and Y.
+```{r}
+set.seed(44)
+wmwpb(prager[,7],prager[,11], nboot=nboot)
+```
+
+Did not reject with medians, $p=0.086$, but based on the median
+of typical difference, $p=0.021$, merely illustrating that the point of
+view can matter. 
+
+### Shift function (compare deciles)
+Comparing quantiles via qcomhd, the 0.75 and 0.9 quantiles differ ($p=0.40$ and $p< 0.001$),
+otherwise no significant differences.
+
+```{r}
+set.seed(44)
+qcomhd(prager[,7],prager[,11], nboot=nboot)
+```
+
+## Ipsi: Sham vs. Day 7
+
+### Non-bootstrap 20% trimmed mean
+```{r}
+yuen(prager[,7],prager[,9])  
+```
+
+### 20% trimmed mean + bootstrap
+```{r}
+set.seed(44)
+nboot <- 2000
+trimpb2(prager[,7],prager[,9], nboot=nboot)  
+```
+
+### medians + bootstrap
+```{r}
+set.seed(44)
+medpb2(prager[,7],prager[,9], nboot=nboot)  
+```
+
+### Improved Wilcoxon-Mann-Whitney
+```{r}
+cidv2(prager[,7],prager[,9]) 
+```
+
+### Harrell-Davis estimator + bootstrap
+```{r}
+set.seed(44)
+pb2genMC(prager[,7],prager[,9],est=hd, nboot=nboot)
+```
+
+### Symmetry test based on D=X-Y
+```{r}
+set.seed(44)
+cbmhd(prager[,7],prager[,9], nboot=nboot) 
+```
+
+### Median of the typical difference between randomly sampled observations from each group
+```{r}
+set.seed(44)
+wmwpb(prager[,7],prager[,9], nboot=nboot)
+```
+
+### Shift function (compare deciles)
+```{r}
+set.seed(44)
+qcomhd(prager[,7],prager[,9], nboot=nboot)
+```
+
+
+# Comparisons: contralateral conditions
+
+Repeat the above using contra.
+
+First do T-tests:
+
+```{r}
+t.test(prager[,8],prager[,10],var.equal =T)  # Day 7 vs control (sham)
+t.test(prager[,8],prager[,12],var.equal =T) 
+```
+
+So based on Student's T, sham vs. Day 1, not significant, sham vs. Day 7 is.
+
+Now look at sham vs. Day 7 using robust methods.
+
+## Contra: Sham vs. Day 7
+
+### Non-bootstrap 20% trimmed mean
+```{r}
+yuen(prager[,8],prager[,10])  
+```
+
+### Bootstrap + trimmed means
+```{r}
+set.seed(44)
+trimpb2(prager[,8],prager[,10], nboot = nboot)
+```
+
+### Medians
+```{r}
+set.seed(44)
+medpb2(prager[,8],prager[,10], nboot = nboot)  
+```
+
+### Cliff
+```{r}
+cidv2(prager[,8],prager[,10]) 
+```
+
+### Harrell-Davis estimator
+```{r}
+set.seed(44)
+pb2genMC(prager[,8],prager[,10],est=hd, nboot = nboot) 
+```
+
+### Symmetry test based on D=X-Y
+```{r}
+cbmhd(prager[,8],prager[,10], nboot = nboot) 
+```
+
+### Median of the typical difference
+```{r}
+set.seed(44)
+wmwpb(prager[,8],prager[,10], nboot = nboot) 
+```
+
+So even setting FWE (Familywise error, the probability of one or more
+Type I errors) equal to 0.001, all of the robust methods reject.
+
+## Contra: sham versus Day 1
+
+### Non-bootstrap 20% trimmed mean
+```{r}
+yuen(prager[,8],prager[,12])  
+```
+
+### Bootstrap + trimmed means
+```{r}
+set.seed(44)
+trimpb2(prager[,8],prager[,12], nboot = nboot)
+```
+
+### Medians
+```{r}
+set.seed(44)
+medpb2(prager[,8],prager[,12], nboot = nboot)  
+```
+
+### Cliff
+```{r}
+cidv2(prager[,8],prager[,12]) 
+```
+
+### Harrell-Davis estimator
+```{r}
+set.seed(44)
+pb2genMC(prager[,8],prager[,12],est=hd, nboot = nboot) 
+```
+
+### Symmetry test based on D=X-Y
+```{r}
+set.seed(44)
+cbmhd(prager[,8],prager[,12], nboot = nboot) 
+```
+
+### Median of the typical difference
+```{r}
+set.seed(44)
+wmwpb(prager[,8],prager[,12], nboot = nboot) 
+```
+
+So for contra, sham versus day 1, no significant differences.
+
+
+
