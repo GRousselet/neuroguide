@@ -59,7 +59,7 @@ pA <- ggplot(df, aes(x,y)) + theme_gar +
 pA
 ```
 
-## Panel B: distribution of sample mean
+## Panel B: distribution of sample means
 
 ### Get data
 
@@ -68,25 +68,32 @@ n <- 30
 set.seed(45)
 v=NA
 nsim <- 50000
+# Distribution of sample means from lognormal population
 for(i in 1:nsim){
   v[i] <- mean(rlnorm(n))
 }
+# Distributions of sample means from normal population
 m1 <- mean(v)
 SD1 <- sd(v)
-val1 <- dnorm(c(40:300 / 100), m1, SD1)
+x <- c(0:600 / 100)
+val1 <- dnorm(x, m1, SD1)
+# fval <- akerd(v, xlab = 'Sample Mean', pyhat = TRUE, pts = x)
+# save(fval, file = "./data/fig01B.RData")
 ```
 
 ### Base R figure
 ```{r}
-fval <- akerd(v, xlab = 'Sample Mean', pyhat = TRUE)
-lines(c(40:300 / 100), val1, lty=2)
+xlab <- 'Sample Means'
+ylab <- ""
+load(file = "./data/fig01B.RData")
+plot(x, fval, type="n",ylab=ylab,xlab=xlab)
+lines(x, fval, col="black")
+lines(x, val1, lty=2)
 ```
 
 ### `ggplot2` version
 ```{r}
-x <- sort(v)
-val1 <- dnorm(x, m1, SD1)
-df <- tibble(x,`n=30`=fval,`Theoretical`=val1) # create data frame
+df <- tibble(x,`Lognormal`=fval,`Normal`=val1) # create data frame
 df <- tidyr::gather(df,Distribution,y,2:3)
 
 # make plot
@@ -96,8 +103,9 @@ pB <- ggplot(df, aes(x,y, group=Distribution)) + theme_gar +
   geom_line(aes(linetype=Distribution, colour=Distribution, size=Distribution)) +
   scale_size_manual(values=c(1,0.5)) +
   scale_linetype_manual(values=c("solid","solid")) +
-  scale_color_manual(values=c('black','grey50')) +
-  scale_x_continuous(breaks=seq(0,4,0.5)) +
+  scale_colour_manual(values=c('black','grey50')) +
+  scale_x_continuous(breaks=seq(0,6,1)) +
+  coord_cartesian(xlim = c(0, 5)) +
   theme(axis.title = element_text(size = 18),
         axis.text.x = element_text(size = 16),
         axis.text.y = element_blank(),
@@ -106,7 +114,8 @@ pB <- ggplot(df, aes(x,y, group=Distribution)) + theme_gar +
         legend.position = c(0.7,0.8),
         panel.grid.minor = element_blank(),
         panel.grid.major.y = element_blank()) +
-  labs(x = "Sample Means", y = "Density")
+  labs(x = "Sample Means", y = "Density", 
+       linetype="n=30", colour="n=30", size="n=30")
 pB
 ```
 
@@ -123,16 +132,17 @@ for(i in 1:nsim){
   tv[i] <- trimci(rlnorm(n) - mpop, tr=0, pr=FALSE)$test.stat
 }
 
-x <- c(-800:300) / 100
-tdis <- akerd(tv,xlab='T',pyhat=TRUE,plotit=FALSE,pts=x)
-# DT <- dt(c(-250:250) / 100, df=29)
-DT <- dt(x, df=n-1)
-DT[x<(-3)] <- NA
+x <- c(-800:400) / 100
+# tdis <- akerd(tv,xlab='T',pyhat=TRUE,plotit=FALSE,pts=x)
+# save(tdis, file = "./data/fig01C.RData")
+DT <- dt(x, df=n-1) # normal population
+# DT[x<(-3)] <- NA
 ```
 
 ### Base R figure
 
 ```{r}
+load(file = "./data/fig01C.RData")
 plot(c(x, x), c(tdis,DT), xlab='T', type='n', ylab='')
 lines(x, DT)
 lines(x, tdis, lty=2)
@@ -143,7 +153,7 @@ lines(x, tdis, lty=2)
 
 ### `ggplot2` version
 ```{r, warning=FALSE}
-df <- tibble(x,`n = 30`=tdis,`Theoretical`=DT) # create data frame
+df <- tibble(x,`Lognormal`=tdis,`Normal`=DT) # create data frame
 df <- tidyr::gather(df,Distribution,y,2:3)
 
 # make plot
@@ -154,7 +164,8 @@ pC <- ggplot(df, aes(x,y, group=Distribution)) + theme_gar +
   scale_size_manual(values=c(1,0.5)) +
   scale_linetype_manual(values=c("solid","solid")) +
   scale_color_manual(values=c('black','grey50')) +
-  scale_x_continuous(breaks=seq(-8,3,1)) +
+  scale_x_continuous(breaks=seq(-8,4,1)) +
+  coord_cartesian(xlim = c(-6, 3.5)) +
   theme(axis.title = element_text(size = 18),
         axis.text.x = element_text(size = 16),
         axis.text.y = element_blank(),
@@ -163,7 +174,8 @@ pC <- ggplot(df, aes(x,y, group=Distribution)) + theme_gar +
         legend.position = c(0.25,0.80),
         panel.grid.minor = element_blank(),
         panel.grid.major.y = element_blank()) +
-  labs(x = "T values", y = "Density")
+  labs(x = "T values", y = "Density",
+       linetype="n=30", colour="n=30", size="n=30")
 pC
 ```
 
@@ -177,14 +189,16 @@ set.seed(45)
 for(i in 1:nsim){
   tv[i]=trimci(rlnorm(n)-sqrt(exp(1)), tr=0, pr=FALSE)$test.stat
 }
-x <- c(-800:300)/100
-tdis <- akerd(tv,xlab='T',pyhat=TRUE,plotit=FALSE,pts=x)
+x <- c(-800:400)/100
+# tdis <- akerd(tv,xlab='T',pyhat=TRUE,plotit=FALSE,pts=x)
+# save(tdis, file = "./data/fig01D.RData")
 DT <- dt(x, df=n-1)
-DT[x<(-3)] <- NA
+# DT[x<(-3)] <- NA
 ```
 
 ### Base R figure
 ```{r}
+load(file = "./data/fig01D.RData")
 plot(c(x, x), c(tdis,DT), xlab='T', type='n', ylab='')
 lines(x, DT)
 lines(x, tdis, lty=2)
@@ -195,7 +209,7 @@ lines(x, tdis, lty=2)
 
 ### `ggplot2` version
 ```{r, warning=FALSE}
-df <- tibble(x,`n = 100`=tdis,`Theoretical`=DT) # create data frame
+df <- tibble(x,`Lognormal`=tdis,`Normal`=DT) # create data frame
 df <- tidyr::gather(df,Distribution,y,2:3)
 
 # make plot
@@ -207,6 +221,7 @@ pD <- ggplot(df, aes(x,y, group=Distribution)) + theme_gar +
   scale_linetype_manual(values=c("solid","solid")) +
   scale_color_manual(values=c('black','grey50')) +
   scale_x_continuous(breaks=seq(-8,3,1)) +
+  coord_cartesian(xlim = c(-6, 3)) +
   theme(axis.title = element_text(size = 18),
         axis.text.x = element_text(size = 16),
         axis.text.y = element_blank(),
@@ -215,7 +230,8 @@ pD <- ggplot(df, aes(x,y, group=Distribution)) + theme_gar +
         legend.position = c(0.25,0.80),
         panel.grid.minor = element_blank(),
         panel.grid.major.y = element_blank()) +
-  labs(x = "T values", y = "Density")
+  labs(x = "T values", y = "Density",
+       linetype="n=100", colour="n=100", size="n=100")
 pD
 ```
 

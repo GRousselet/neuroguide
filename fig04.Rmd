@@ -106,7 +106,7 @@ panelB
 panelB <- ggplot(df, aes(x = Value, colour = Estimator)) + theme_gar +
           stat_density(geom="line", position="identity", 
                        linewidth=0.75, trim=TRUE) + 
-          scale_colour_manual(values = c("#56B4E9", "#D55E00", "#009E73")) +
+          scale_colour_manual(values = c("#56B4E9", "#D55E00", "black")) + #009E73
           scale_x_continuous(breaks=seq(-4,4,1), limits = c(-3,3)) +
           theme(axis.title = element_text(size = 18),
           axis.text = element_text(size = 16),
@@ -168,7 +168,7 @@ panelC
 panelC <- ggplot(df, aes(x = Value, colour = Estimator)) + theme_gar +
           stat_density(geom="line", position="identity", 
                        linewidth=0.75, trim=TRUE, show.legend = FALSE) + 
-          scale_colour_manual(values = c("#56B4E9", "#D55E00", "#009E73")) +
+          scale_colour_manual(values = c("#56B4E9", "#D55E00", "black")) + #009E73
           scale_x_continuous(breaks=seq(-4,4,1)) +
           coord_cartesian(xlim = c(-3.5,3.5)) +
           theme(axis.title = element_text(size = 18),
