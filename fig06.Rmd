@@ -49,7 +49,9 @@ df$Positions <- keeporder(df$Positions)
 dfA <- df
 ```
 
-## data frame of medians
+## data frame of summary statistics 
+
+### medians
 
 Summarise each column using the Harrell-Davis estimate of the 50th quantile.
 
@@ -57,6 +59,22 @@ Summarise each column using the Harrell-Davis estimate of the 50th quantile.
 tmp <- as_tibble(DT)
 df.hd <- enframe(apply(tmp, 2, hd), name="Positions", value="Thresholds")
 df.hd$Positions <- as.factor(df.hd$Positions)
+```
+
+Use the median instead
+
+```{r}
+tmp <- as_tibble(DT)
+df.md <- enframe(apply(tmp, 2, median), name="Positions", value="Thresholds")
+df.md$Positions <- as.factor(df.md$Positions)
+```
+
+### means
+
+```{r}
+tmp <- as_tibble(DT)
+df.mn <- enframe(apply(tmp, 2, mean, trim = 0), name="Positions", value="Thresholds")
+df.mn$Positions <- as.factor(df.mn$Positions)
 ```
 
 ## parameters for plots
@@ -78,8 +96,11 @@ pA <- ggplot(dfA, aes(x=Positions, y=Thresholds)) + theme_gar +
   scale_y_continuous(limits = c(0,3.5), breaks = seq(0,3.5,0.5)) +
   xlab("Positions") +
   # superimpose medians
-  geom_line(data = df.hd, aes(group = 1), linewidth = 1) +
-  geom_point(data = df.hd, aes(group = 1), size = 3)
+  geom_line(data = df.md, aes(group = 1), linewidth = 1.2) +
+  geom_point(data = df.md, aes(group = 1), size = 3.5)
+  # # superimpose means
+  # geom_line(data = df.mn, aes(group = 1), linewidth = 1, colour = "grey") +
+  # geom_point(data = df.mn, aes(group = 1), size = 2, colour = "grey")
 pA
 ```
 
@@ -130,15 +151,22 @@ pB <- ggplot(dfB, aes(x=Contrasts, y=Differences,
         axis.title = element_text(size = axis_title_size),
         legend.position = "none") +
   xlab("Contrasts") +
-  stat_summary(fun = hd, fun.min = hd, fun.max = hd,
+  # add median
+  stat_summary(fun = median, fun.min = median, fun.max = median,
                geom = "crossbar", 
                width = 0.5, 
                colour = "black", 
-               size = 0.3) # add median
+               size = 0.5)
+  # # add mean
+  # stat_summary(fun = mean, fun.min = mean, fun.max = mean,
+  #              geom = "crossbar", 
+  #              width = 0.5, 
+  #              colour = "grey", 
+  #              size = 0.3) 
 pB
 ```
 
-## combine panels into one figure
+## combine panels into one figure - AB only
 ```{r, eval=FALSE}
 cowplot::plot_grid(pA, pB,
   labels=c("A", "B"), 
@@ -151,7 +179,84 @@ cowplot::plot_grid(pA, pB,
   align = "h")
 
 # save figure
-ggsave(filename='./figures/figure6.pdf',width=10,height=10) 
+# ggsave(filename='./figures/figure6.pdf',width=10,height=10) 
+```
+
+## Reject at alpha level for different methods?
+
+```{r}
+alpha.val <- 0.05
+rej.res <- matrix(data = NA, nrow = 4, ncol = d)
+diffs <- matrix(data = NA, nrow = 4, ncol = d)
+
+# Means -- no correction for multiple comparisons
+res <- wmcp(Man[,13:18],tr=0)  # 10 sig
+rej.res[1,] <- res$test[,4] < alpha.val
+diffs[1,] <- res$psihat[,3]
+
+# Means + Hochberg
+rej.res[2,] <- res$test[,4] < res$test[,5]
+diffs[2,] <- res$psihat[,3]
+
+# 20% trimmed means + Hochberg
+set.seed(666)
+res <- wmcppb(Man[,13:18], nboot=nboot, tr=tr) # 12 sig
+rej.res[3,] <- res$output[,3] < res$output[,4]
+diffs[3,] <- res$output[,2]
+
+# Medians + Hochberg
+set.seed(666)
+res <- dmedpb(Man[,13:18], nboot=nboot) # 10 sig
+rej.res[4,] <- res$output[,3] < res$output[,4]
+diffs[4,] <- res$output[,2]
+```
+
+### Illustrate results
+
+Size of disks reflects size of differences.
+
+```{r}
+dfC <- tibble(Reject = as.factor(as.vector(rej.res)),
+             Methods = as.factor(rep(c("M(nc)", "M", "TM", "MD"), d)),
+             Contrasts = as.factor(rep(newnames, each = 4)),
+             Differences = as.vector(abs(diffs)) # use absolute differences
+             )
+
+dfC$Methods <- keeporder(dfC$Methods) 
+dfC$Contrasts <- keeporder(dfC$Contrasts)
+
+pC <- ggplot(dfC, aes(x = Contrasts, y = Methods, 
+                      colour = Reject, fill = Reject, size = Differences)) +
+  theme_gar + 
+  geom_point(shape = 21, colour = "black") +
+  scale_fill_manual(values = c("white", "darkgrey")) +
+  scale_y_discrete(limits=rev) +
+  scale_size_continuous(range = c(2,8), guide = "none") +
+  theme(axis.text.y = element_text(size = 14),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+        axis.title = element_text(size = axis_title_size),
+        legend.position = "bottom") +
+  guides(fill = guide_legend(override.aes = list(size = 8)))
+
+pC
+```
+
+
+## combine panels into one figure - ABC
+```{r, eval=FALSE}
+cowplot::plot_grid(pA, pB, pC,
+  labels=c("A", "B", "C"), 
+  ncol = 1, 
+  nrow = 3,
+  rel_widths = c(1, 1, 1),
+  rel_heights = c(1, 1, 0.6),
+  label_size = 20, 
+  hjust = -0.5, 
+  scale=.95,
+  align = "v")
+
+# save figure
+ggsave(filename='./figures/figure6.pdf',width=10,height=15) 
 ```
 
 # Results reported in the text
@@ -167,7 +272,7 @@ t.test(Man$FootP-Man$thighP)
 ```{r}
 set.seed(666)
 nboot <- 2000 # number of bootstrap samples
-tr=0.2 # amount of trimming
+tr <- 0.2 # amount of trimming
 trimpb(Man$FootP-Man$thighP, nboot=nboot, tr=tr)
 ```
 

@@ -137,11 +137,17 @@ out <- lplotCI(CST.L, GORT.FL, CIV = TRUE, pts = CST.L, plotit = FALSE)
 out2 <- lplotCI(CST.L, GORT.FL, xlab='CST.L', ylab='GORT.FL', CIV = TRUE, plotit = TRUE)
 ```
 
+## Running interval smoother suggests a straighter line
+
+```{r}
+yhat.ris <- rplot(CST.L,GORT.FL,xout=F,pyhat=TRUE)$yhat
+```
+
 ## `ggplot2 version`
 ```{r, warning=FALSE}
 # make data frame
 yhat <- out$Conf.Intervals[,2]
-df <- tibble(CST.L, GORT.FL, yhat)
+df <- tibble(CST.L, GORT.FL, yhat, yhat.ris)
 x <- out2$Conf.Intervals[,1]
 y <- out2$Conf.Intervals[,2]
 lower <- out2$Conf.Intervals[,3]
@@ -154,6 +160,7 @@ pC <- ggplot(dfhat, aes(x, y)) + theme_gar +
   geom_line(aes(y = lower), colour = "grey70") +
   geom_line(aes(y = upper), colour = "grey70") +
   geom_line(data = df, aes(CST.L, yhat), colour = "black", size = 1) +
+  geom_line(data = df, aes(CST.L, yhat.ris), colour = "black", linetype = 2, size = 1) +
   geom_point(data = df, aes(CST.L, GORT.FL), size = 2, alpha = 0.5) +
   scale_y_continuous(breaks = seq(0,140,20),
     limits = c(0, 140)) +
@@ -296,9 +303,12 @@ reg.vs.rplot(SH[,c(3,22)],SH[,40]) # DV=WORD ATTACK
 
 Now consider whether age (col. 3) is more important.
 
+**Theil-Sen**
 ```{r}
 regIVcom(SH[,c(3,22)],SH[,40],xout=T) # Theil--Sen, DV=WORD ATTACK
 ```
+
+**Least squares**
 ```{r}
 regIVcom(SH[,c(3,22)],SH[,40],xout=T,regfun=ols) # Least Sq.
 ```
@@ -328,6 +338,8 @@ interval smoother:
 ```{r}
 rplot(SH[,53],SH[,26],ylab='GORT.FL',xlab='CST.L',xout=T)
 ```
+This straighter line is plotted in Figure 9C of the article.
+
 
 Moreover, using both independent variables, the usual linear model appears to
 provide a reasonable approximation of the regression surface based

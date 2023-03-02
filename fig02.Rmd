@@ -166,11 +166,11 @@ df$Distribution <- keeporder(df$Distribution)
 pA <- ggplot(df, aes(x, y)) + theme_gar +
   # Bradley's (1978) satisfactory range
   geom_ribbon(aes(ymin = 0.025, ymax = 0.075), fill = "grey80") +
-    # Bradley's (1978) ideal range
+  # Bradley's (1978) ideal range
   geom_ribbon(aes(ymin = 0.045, ymax = 0.055), fill = "grey90") +
   geom_abline(intercept = 0.05, slope = 0) + # 0.05 reference line
   geom_line(aes(linetype=Distribution, colour=Estimator), linewidth=0.75) +
-  scale_colour_manual(values = c("#56B4E9", "#D55E00", "#009E73")) +
+  scale_colour_manual(values = c("#56B4E9", "#D55E00", "black")) + ##009E73
   theme(axis.title.x = element_text(size = 18),
         axis.text.x = element_text(size = 14),
         axis.text.y = element_text(size = 16),
@@ -182,6 +182,7 @@ pA <- ggplot(df, aes(x, y)) + theme_gar +
   scale_x_continuous(breaks = nvec, labels = nvec.labs) +
   scale_y_continuous(limits = c(0,0.16), 
                      breaks = seq(0, 0.15, 0.025)) +
+  coord_cartesian(ylim = c(0.02, 0.130)) +
   labs(x = "Sample size", y = "Type I error probability")
 pA
 ```
@@ -348,7 +349,7 @@ pB <- ggplot(df, aes(x, y)) + theme_gar +
   geom_abline(intercept = 0.80, slope = 0, linewidth=0.25) + # 0.80 reference line
   geom_abline(intercept = 0.90, slope = 0, linewidth=0.25) + # 0.90 reference line
   geom_line(aes(linetype=Distribution, colour=Estimator), linewidth=0.75, show.legend = FALSE) +
-  scale_colour_manual(values = c("#56B4E9", "#D55E00", "#009E73")) +
+  scale_colour_manual(values = c("#56B4E9", "#D55E00", "black")) + #009E73
   theme(axis.title.x = element_text(size = 18),
         axis.text = element_text(size = 16),
         axis.title.y = element_text(size = 18),
