@@ -186,6 +186,8 @@ cowplot::plot_grid(pA, pB,
 
 ```{r}
 alpha.val <- 0.05
+nboot <- 2000 # number of bootstrap samples
+tr <- 0.2 # amount of trimming
 rej.res <- matrix(data = NA, nrow = 4, ncol = d)
 diffs <- matrix(data = NA, nrow = 4, ncol = d)
 
